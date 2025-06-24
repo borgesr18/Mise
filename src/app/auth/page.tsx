@@ -2,15 +2,36 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Importamos o hook de navegação do Next.js
 import { supabase } from '@/lib/supabaseClient';
 
 export default function AuthPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+
+  // NOVO: Efeito que "ouve" as mudanças no estado de autenticação
+  useEffect(() => {
+    // onAuthStateChange retorna um objeto de subscrição
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      // Se o evento for SIGNED_IN, significa que o login foi bem-sucedido
+      if (event === 'SIGNED_IN') {
+        // Redirecionamos de forma segura para a página principal
+        router.push('/');
+        router.refresh();
+      }
+    });
+
+    // Função de limpeza: remove o "ouvinte" quando o componente é desmontado
+    return () => {
+      authListener?.unsubscribe();
+    };
+  }, [router]);
+
 
   const handleAuth = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -24,12 +45,8 @@ export default function AuthPage() {
           email,
           password,
         });
-
         if (error) throw error;
-        
-        // SUCESSO! Força um recarregamento completo na página principal.
-        // Isto garante que o middleware irá reavaliar com a nova sessão.
-        window.location.href = '/';
+        // REMOVIDO: O redirecionamento agora é tratado pelo useEffect
 
       } else {
         // Lógica de Registo
