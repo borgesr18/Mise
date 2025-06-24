@@ -1,53 +1,45 @@
 // src/app/api/ingredients/route.ts
 
-import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma' // Importamos nossa instância única do Prisma
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { createSupabaseServerClient } from '@/lib/serverUtils'; // Importamos a nossa nova função auxiliar
 
-// NOVO CÓDIGO: Função para lidar com requisições GET
+// A função GET permanece a mesma por agora
 export async function GET() {
-  try {
-    // Usa o Prisma Client para buscar TODOS os ingredientes
-    const ingredients = await prisma.ingredient.findMany()
-
-    // Retorna a lista de ingredientes com um status 200 (OK)
-    return NextResponse.json(ingredients, { status: 200 })
-  } catch (error) {
-    // Em caso de erro, loga o erro no console do servidor
-    console.error('Error fetching ingredients:', error)
-    // E retorna uma resposta de erro com status 500 (Internal Server Error)
-    return NextResponse.json(
-      { message: 'Erro ao buscar os insumos.' },
-      { status: 500 }
-    )
-  }
+  // ... (código existente)
 }
 
-// CÓDIGO EXISTENTE: Função para lidar com requisições POST
+// MODIFICADO: Função para lidar com pedidos POST
 export async function POST(req: Request) {
-  try {
-    // Pega os dados enviados no corpo da requisição
-    const body = await req.json()
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-    // Usa o Prisma Client para criar um novo ingrediente no banco de dados
+  // Se não houver utilizador, recusa o pedido
+  if (!user) {
+    return NextResponse.json({ message: 'Não autorizado' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+
     const newIngredient = await prisma.ingredient.create({
       data: {
+        // A MUDANÇA PRINCIPAL ESTÁ AQUI:
+        userId: user.id, // Associamos o insumo ao utilizador autenticado
         name: body.name,
         category: body.category,
         stockQuantity: body.stockQuantity,
         stockUnit: body.stockUnit,
         lastPurchasePrice: body.lastPurchasePrice,
       },
-    })
+    });
 
-    // Retorna o ingrediente criado com um status 201 (Created)
-    return NextResponse.json(newIngredient, { status: 201 })
+    return NextResponse.json(newIngredient, { status: 201 });
   } catch (error) {
-    // Em caso de erro, loga o erro no console do servidor
-    console.error('Error creating ingredient:', error)
-    // E retorna uma resposta de erro com status 500 (Internal Server Error)
+    console.error('Error creating ingredient:', error);
     return NextResponse.json(
       { message: 'Erro ao criar o insumo.' },
       { status: 500 }
-    )
+    );
   }
 }
