@@ -3,17 +3,21 @@
 "use client";
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient'; // O nosso cliente Supabase
+import { useRouter } from 'next/navigation'; // Importamos o hook de navegação
+import { supabase } from '@/lib/supabaseClient';
 
 export default function AuthPage() {
+  const router = useRouter(); // Inicializamos o router
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLogin, setIsLogin] = useState(true); // Controla se é a vista de Login ou Registo
+  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // A função que é chamada quando o formulário é submetido
   const handleAuth = async (event: React.FormEvent) => {
-    event.preventDefault();
+    // Isto previne que a página recarregue, que é o comportamento padrão de um formulário
+    event.preventDefault(); 
     setLoading(true);
     setMessage('');
 
@@ -21,20 +25,15 @@ export default function AuthPage() {
       let error;
 
       if (isLogin) {
-        // Lógica de Login
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         error = signInError;
       } else {
-        // Lógica de Registo
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          // options: {
-          //   emailRedirectTo: `${window.location.origin}/`, // Opcional: para onde redirecionar após a confirmação do e-mail
-          // },
         });
         error = signUpError;
       }
@@ -44,11 +43,12 @@ export default function AuthPage() {
       }
 
       if (isLogin) {
-        // Se o login for bem-sucedido, o Supabase trata da sessão.
-        // O ideal é redirecionar o utilizador.
-        window.location.href = '/'; 
+        // Se o login for bem-sucedido, redirecionamos para a página principal
+        router.push('/');
+        router.refresh(); // Força a atualização dos dados do servidor
       } else {
-        setMessage('Registo bem-sucedido! Verifique o seu e-mail para confirmar a conta.');
+        setMessage('Registo bem-sucedido! Pode agora fazer login.');
+        setIsLogin(true); // Muda para a tela de login após o registo
       }
 
     } catch (error: any) {
@@ -65,51 +65,27 @@ export default function AuthPage() {
           {isLogin ? 'Entrar no Mise' : 'Criar Conta'}
         </h1>
         
+        {/* Verifique se o seu formulário tem o atributo onSubmit */}
         <form onSubmit={handleAuth} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              placeholder="o.seu@email.com"
-            />
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm" placeholder="o.seu@email.com" />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Palavra-passe
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            />
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Palavra-passe</label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm" />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:bg-gray-400"
-          >
+          {/* O botão DEVE ter type="submit" para acionar o onSubmit do formulário */}
+          <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400">
             {loading ? 'A processar...' : (isLogin ? 'Entrar' : 'Registar')}
           </button>
         </form>
 
-        {message && <p className="text-center text-red-500">{message}</p>}
+        {message && <p className={`text-center ${message.startsWith('Erro:') ? 'text-red-500' : 'text-green-600'}`}>{message}</p>}
 
         <p className="text-sm text-center text-gray-600">
           {isLogin ? 'Ainda não tem conta?' : 'Já tem uma conta?'}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="ml-1 font-semibold text-blue-600 hover:underline"
-          >
+          <button onClick={() => setIsLogin(!isLogin)} className="ml-1 font-semibold text-blue-600 hover:underline">
             {isLogin ? 'Registe-se' : 'Faça login'}
           </button>
         </p>
@@ -117,3 +93,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
