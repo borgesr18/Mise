@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
+import IngredientForm from './IngredientForm'; // Importamos nosso novo componente
 
 interface RecipeDetailsPageProps {
   params: {
@@ -12,21 +13,24 @@ interface RecipeDetailsPageProps {
 export default async function RecipeDetailsPage({ params }: RecipeDetailsPageProps) {
   const { id } = params;
 
-  // Busca a receita específica E seus ingredientes vinculados
+  // 1. Busca a receita específica E seus ingredientes já vinculados
   const recipe = await prisma.recipe.findUnique({
     where: { id },
     include: {
-      // 'include' é o comando do Prisma para trazer dados de tabelas relacionadas
       ingredients: {
+        orderBy: { ingredient: { name: 'asc' } }, // Ordena os insumos por nome
         include: {
-          // Dentro da relação, inclua os detalhes do próprio insumo
           ingredient: true,
         },
       },
     },
   });
 
-  // Se a receita não for encontrada, mostra uma página de erro 404
+  // 2. Busca TODOS os insumos disponíveis para popular o dropdown
+  const allIngredients = await prisma.ingredient.findMany({
+    orderBy: { name: 'asc' },
+  });
+
   if (!recipe) {
     notFound();
   }
@@ -42,31 +46,19 @@ export default async function RecipeDetailsPage({ params }: RecipeDetailsPagePro
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Coluna de Insumos */}
         <div className="md:col-span-1">
           <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Insumos</h2>
-          {recipe.ingredients.length === 0 ? (
-            <p className="text-gray-500">Nenhum insumo adicionado a esta receita ainda.</p>
-          ) : (
-            <ul className="space-y-2">
-              {recipe.ingredients.map((recipeIng) => (
-                <li key={recipeIng.ingredient.id} className="flex justify-between">
-                  <span>{recipeIng.ingredient.name}</span>
-                  <span className="font-medium">
-                    {recipeIng.quantity} {recipeIng.ingredient.stockUnit}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          {/* Futuramente, o botão para adicionar insumos virá aqui */}
+          {/* Renderiza nosso novo componente interativo */}
+          <IngredientForm 
+            recipeId={recipe.id} 
+            allIngredients={allIngredients}
+            initialRecipeIngredients={recipe.ingredients}
+          />
         </div>
 
-        {/* Coluna de Modo de Preparo */}
         <div className="md:col-span-2">
           <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Modo de Preparo</h2>
           <div className="prose max-w-none">
-            {/* Usamos 'whitespace-pre-wrap' para respeitar as quebras de linha do texto */}
             <p className="whitespace-pre-wrap">{recipe.method}</p>
           </div>
         </div>
