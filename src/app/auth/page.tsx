@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Importamos o hook de navegação do Next.js
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function AuthPage() {
@@ -14,13 +14,11 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  // NOVO: Efeito que "ouve" as mudanças no estado de autenticação
+  // Efeito que "ouve" as mudanças no estado de autenticação
   useEffect(() => {
-    // onAuthStateChange retorna um objeto de subscrição
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      // Se o evento for SIGNED_IN, significa que o login foi bem-sucedido
+    // onAuthStateChange retorna um objeto { data: { subscription } }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
-        // Redirecionamos de forma segura para a página principal
         router.push('/');
         router.refresh();
       }
@@ -28,7 +26,8 @@ export default function AuthPage() {
 
     // Função de limpeza: remove o "ouvinte" quando o componente é desmontado
     return () => {
-      authListener?.unsubscribe();
+      // A função unsubscribe está dentro do objeto de subscrição
+      subscription?.unsubscribe();
     };
   }, [router]);
 
@@ -46,7 +45,7 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
-        // REMOVIDO: O redirecionamento agora é tratado pelo useEffect
+        // O redirecionamento é tratado pelo useEffect
 
       } else {
         // Lógica de Registo
@@ -57,7 +56,7 @@ export default function AuthPage() {
 
         if (error) throw error;
         setMessage('Registo bem-sucedido! Pode agora fazer login.');
-        setIsLogin(true); // Muda para a tela de login após o registo
+        setIsLogin(true);
       }
 
     } catch (error: any) {
