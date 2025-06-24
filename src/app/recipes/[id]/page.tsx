@@ -33,30 +33,58 @@ export default async function RecipeDetailsPage({ params }: RecipeDetailsPagePro
     notFound();
   }
 
-  // NOVO: Lógica para Calcular o Custo Total da Receita
+  // --- LÓGICA DE CÁLCULO FINANCEIRO ---
+  
+  // 1. Custo Total
   const totalCost = recipe.ingredients.reduce((acc, recipeIng) => {
-    // Custo do item = quantidade usada * preço por unidade do insumo
     const itemCost = recipeIng.quantity * recipeIng.ingredient.lastPurchasePrice;
     return acc + itemCost;
   }, 0);
 
+  // 2. NOVO: Custo por Porção
+  // Evita divisão por zero se o rendimento for 0
+  const costPerPortion = recipe.yield > 0 ? totalCost / recipe.yield : 0;
+
+  // 3. NOVO: Preço de Venda Sugerido (Markup de 3x)
+  const markupFactor = 3;
+  const suggestedSalePrice = costPerPortion * markupFactor;
+
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <header className="mb-8">
+      <header className="mb-8 p-6 bg-white rounded-lg shadow-md">
         <h1 className="text-4xl font-bold text-gray-800">{recipe.name}</h1>
         <p className="text-lg text-gray-600 mt-2">{recipe.description}</p>
-        <div className="flex items-baseline gap-4 mt-2">
-            <p className="text-md text-gray-500">
-                Rendimento: {recipe.yield} {recipe.yieldUnit}
+        
+        {/* Métricas Financeiras */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 border-t pt-4">
+          <div>
+            <p className="text-sm text-gray-500">Rendimento</p>
+            <p className="text-lg font-bold">{recipe.yield} {recipe.yieldUnit}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Custo Total</p>
+            <p className="text-lg font-bold text-red-600">
+              {totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </p>
-            {/* NOVO: Exibindo o Custo Total Formatado */}
-            <p className="text-md font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full">
-                Custo Total: {totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Custo por Porção</p>
+            <p className="text-lg font-bold text-orange-600">
+              {costPerPortion.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
             </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Preço de Venda (3x)</p>
+            <p className="text-lg font-bold text-green-700">
+              {suggestedSalePrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </p>
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* ... (resto do código continua o mesmo) ... */}
         <div className="md:col-span-1">
           <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Insumos</h2>
           <IngredientForm 
@@ -65,7 +93,6 @@ export default async function RecipeDetailsPage({ params }: RecipeDetailsPagePro
             initialRecipeIngredients={recipe.ingredients}
           />
         </div>
-
         <div className="md:col-span-2">
           <h2 className="text-2xl font-semibold border-b pb-2 mb-4">Modo de Preparo</h2>
           <div className="prose max-w-none">
