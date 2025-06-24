@@ -1,10 +1,10 @@
 // src/app/IngredientManager.tsx
 
-"use client"; // Diretiva que transforma este em um Componente de Cliente
+"use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // NOVO: Importamos o useEffect
 
-// Definimos um tipo para o nosso ingrediente para usar com o TypeScript
+// Definimos um tipo para o nosso ingrediente
 type Ingredient = {
   id: string;
   name: string;
@@ -13,15 +13,18 @@ type Ingredient = {
   stockUnit: string;
 };
 
-// O componente recebe a lista inicial de ingredientes do servidor
+// NOVO: Definimos um tipo para nossa notificação
+type Notification = {
+  message: string;
+  type: 'success' | 'error' | '';
+};
+
 export default function IngredientManager({
   initialIngredients,
 }: {
   initialIngredients: Ingredient[];
 }) {
-  // Estado para gerenciar a lista de ingredientes na tela
   const [ingredients, setIngredients] = useState(initialIngredients);
-  // Estado para gerenciar os dados do novo insumo no formulário
   const [newIngredient, setNewIngredient] = useState({
     name: '',
     category: '',
@@ -29,19 +32,29 @@ export default function IngredientManager({
     stockUnit: '',
     lastPurchasePrice: '',
   });
-  // Estado para gerenciar o carregamento durante o envio do formulário
   const [isLoading, setIsLoading] = useState(false);
+  // NOVO: Estado para gerenciar a notificação
+  const [notification, setNotification] = useState<Notification>({ message: '', type: '' });
 
-  // Função para lidar com a digitação nos campos do formulário
+  // NOVO: Efeito que faz a notificação desaparecer após 3 segundos
+  useEffect(() => {
+    if (notification.message) {
+      const timer = setTimeout(() => {
+        setNotification({ message: '', type: '' });
+      }, 3000);
+      return () => clearTimeout(timer); // Limpa o timer se o componente for desmontado
+    }
+  }, [notification]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewIngredient((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Função para lidar com o envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Previne o recarregamento da página
+    e.preventDefault();
     setIsLoading(true);
+    setNotification({ message: '', type: '' }); // Limpa notificações antigas
 
     const body = {
       ...newIngredient,
@@ -61,19 +74,14 @@ export default function IngredientManager({
       }
 
       const createdIngredient = await response.json();
-      // Adiciona o novo insumo à lista na tela, sem precisar recarregar
       setIngredients((prev) => [...prev, createdIngredient]);
-      // Limpa o formulário
-      setNewIngredient({
-        name: '',
-        category: '',
-        stockQuantity: '',
-        stockUnit: '',
-        lastPurchasePrice: '',
-      });
+      setNewIngredient({ name: '', category: '', stockQuantity: '', stockUnit: '', lastPurchasePrice: '' });
+      // NOVO: Define a notificação de sucesso
+      setNotification({ message: 'Insumo adicionado com sucesso!', type: 'success' });
     } catch (error) {
       console.error(error);
-      alert('Ocorreu um erro. Verifique o console.');
+      // NOVO: Define a notificação de erro
+      setNotification({ message: 'Erro ao adicionar o insumo. Tente novamente.', type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +89,19 @@ export default function IngredientManager({
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
+      {/* NOVO: Componente de Notificação */}
+      {notification.message && (
+        <div
+          className={`p-4 mb-4 rounded-md text-center ${
+            notification.type === 'success'
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {notification.message}
+        </div>
+      )}
+
       <h1 className="text-4xl font-bold mb-6 text-gray-800">
         Mise - Inventário de Insumos
       </h1>
@@ -89,58 +110,13 @@ export default function IngredientManager({
       <form onSubmit={handleSubmit} className="mb-8 p-6 bg-white rounded-lg shadow-md">
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">Adicionar Novo Insumo</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            name="name"
-            value={newIngredient.name}
-            onChange={handleInputChange}
-            placeholder="Nome do Insumo"
-            required
-            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            name="category"
-            value={newIngredient.category}
-            onChange={handleInputChange}
-            placeholder="Categoria (Ex: Secos, Laticínios)"
-            required
-            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="number"
-            name="stockQuantity"
-            value={newIngredient.stockQuantity}
-            onChange={handleInputChange}
-            placeholder="Quantidade em Estoque"
-            required
-            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="text"
-            name="stockUnit"
-            value={newIngredient.stockUnit}
-            onChange={handleInputChange}
-            placeholder="Unidade (Ex: kg, litro, unidade)"
-            required
-            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <input
-            type="number"
-            step="0.01"
-            name="lastPurchasePrice"
-            value={newIngredient.lastPurchasePrice}
-            onChange={handleInputChange}
-            placeholder="Preço da Última Compra"
-            required
-            className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <input type="text" name="name" value={newIngredient.name} onChange={handleInputChange} placeholder="Nome do Insumo" required className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="text" name="category" value={newIngredient.category} onChange={handleInputChange} placeholder="Categoria (Ex: Secos, Laticínios)" required className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="number" name="stockQuantity" value={newIngredient.stockQuantity} onChange={handleInputChange} placeholder="Quantidade em Estoque" required className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="text" name="stockUnit" value={newIngredient.stockUnit} onChange={handleInputChange} placeholder="Unidade (Ex: kg, litro, unidade)" required className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input type="number" step="0.01" name="lastPurchasePrice" value={newIngredient.lastPurchasePrice} onChange={handleInputChange} placeholder="Preço da Última Compra" required className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="mt-4 w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:bg-gray-400"
-        >
+        <button type="submit" disabled={isLoading} className="mt-4 w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:bg-gray-400">
           {isLoading ? 'Salvando...' : 'Adicionar Insumo'}
         </button>
       </form>
