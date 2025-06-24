@@ -7,10 +7,10 @@ datasource db {
 
 // generator client informa ao Prisma para criar o cliente TypeScript,
 // nossa ferramenta para interagir com o banco de dados.
+// prisma/schema.prisma
 generator client {
-  provider = "preview-features"
-  previewFeatures = ["fullTextSearch"]
-  binaryTargets = ["native", "rhel-openssl-1.0.x"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"] // Corrigido e atualizado!
 }
 
 //================================================//
