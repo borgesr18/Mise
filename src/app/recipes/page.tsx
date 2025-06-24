@@ -2,11 +2,24 @@
 
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import { createSupabaseServerClient } from '@/lib/serverUtils';
+import { redirect } from 'next/navigation';
 
 export default async function RecipesPage() {
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/auth');
+  }
+
+  // MODIFICADO: Busca as receitas ONDE o userId corresponde ao ID do utilizador autenticado
   const recipes = await prisma.recipe.findMany({
+    where: {
+      userId: user.id,
+    },
     orderBy: {
-      createdAt: 'desc', // Mostra as mais recentes primeiro
+      createdAt: 'desc',
     },
   });
 
@@ -24,13 +37,16 @@ export default async function RecipesPage() {
 
       {recipes.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-lg shadow-md">
-          <p className="text-gray-500">Nenhuma ficha técnica cadastrada ainda.</p>
-          <p className="text-sm text-gray-400 mt-2">Clique em "Nova Ficha Técnica" para começar.</p>
+          <p className="text-gray-500">
+            Nenhuma ficha técnica registada ainda.
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Clique em "Nova Ficha Técnica" para começar.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {recipes.map((recipe) => (
-            // NOVO: O card inteiro agora é um link
             <Link href={`/recipes/${recipe.id}`} key={recipe.id}>
               <div className="block bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02] transition-all">
                 <h2 className="text-xl font-semibold text-gray-800">{recipe.name}</h2>
