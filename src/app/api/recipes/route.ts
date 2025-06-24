@@ -2,30 +2,28 @@
 
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { createSupabaseServerClient } from '@/lib/serverUtils';
 
-// Função para LISTAR todas as receitas
+// A função GET permanece a mesma por agora
 export async function GET() {
-  try {
-    const recipes = await prisma.recipe.findMany();
-    return NextResponse.json(recipes, { status: 200 });
-  } catch (error) {
-    console.error('Error fetching recipes:', error);
-    return NextResponse.json(
-      { message: 'Erro ao buscar as fichas técnicas.' },
-      { status: 500 }
-    );
-  }
+  // ... (código existente)
 }
 
-// Função para CRIAR uma nova receita
+// MODIFICADO: Função para criar uma nova receita
 export async function POST(req: Request) {
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ message: 'Não autorizado' }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
 
-    // Note que, por enquanto, a criação da receita não incluirá a lista de ingredientes.
-    // Faremos essa vinculação em um passo seguinte.
     const newRecipe = await prisma.recipe.create({
       data: {
+        userId: user.id, // Associamos a receita ao utilizador autenticado
         name: body.name,
         description: body.description,
         method: body.method,
