@@ -7,10 +7,9 @@ datasource db {
 
 // generator client informa ao Prisma para criar o cliente TypeScript,
 // nossa ferramenta para interagir com o banco de dados.
-// prisma/schema.prisma
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"] // Corrigido e atualizado!
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 //================================================//
@@ -19,65 +18,49 @@ generator client {
 
 // Fornecedores: Quem nos vende os insumos.
 model Supplier {
-  id              String       @id @default(cuid())
-  name            String       @unique
-  contactPerson   String?
-  phone           String?
-  email           String?
-  notes           String?
-  createdAt       DateTime     @default(now())
-  ingredients     Ingredient[]
+  id            String       @id @default(cuid())
+  name          String       @unique
+  contactPerson String?
+  phone         String?
+  email         String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  ingredients   Ingredient[]
 }
 
 // Insumos: Nossos ingredientes e materiais.
 model Ingredient {
-  id                String    @id @default(cuid())
-  name              String    @unique // "Farinha de Trigo Especial T65"
-  category          String    // "Secos", "Laticínios", "Frutas", "Embalagem"
-  
-  stockQuantity     Float     // Quantidade atual em estoque (ex: 10.5)
-  stockUnit         String    // Unidade de medida do estoque (ex: "kg", "litro", "unidade")
-  
-  // Detalhes da Compra
+  id                String             @id @default(cuid())
+  name              String             @unique
+  category          String
+  stockQuantity     Float
+  stockUnit         String
   supplierId        String?
-  lastPurchasePrice Float     // Preço da última compra por unidade de estoque
-  
-  // Gerenciamento de Estoque
-  lowStockThreshold Float?    // Nível para alerta de estoque baixo (ex: 2.0)
-  
-  createdAt         DateTime  @default(now())
-  
-  // Relacionamentos
-  supplier          Supplier?  @relation(fields: [supplierId], references: [id])
+  lastPurchasePrice Float
+  lowStockThreshold Float?
+  createdAt         DateTime           @default(now())
+  supplier          Supplier?          @relation(fields: [supplierId], references: [id])
   recipes           RecipeIngredient[]
 }
 
 // Ficha Técnica: O coração do sistema. Nossas receitas.
 model Recipe {
-  id          String       @id @default(cuid())
-  name        String       @unique // "Pão de Campanha com Levain"
-  description String?
-  tags        String[]     // Tags para busca: ["Fermentação Natural", "Vegano"]
-  status      RecipeStatus @default(DRAFT) // Workflow da receita
-  
-  // Detalhes da Produção
-  method          String       // Modo de preparo detalhado (aceita Markdown)
-  preparationTime Int?         // Tempo de preparo em minutos
-  cookingTime     Int?         // Tempo de forno/cocção em minutos
-  restingTime     Int?         // Tempo de descanso/fermentação em minutos
-  
-  // Rendimento
-  yield           Float        // Quanto a receita rende (ex: 3)
-  yieldUnit       String       // Unidade do rendimento (ex: "pães de 750g", "bolos de 2kg")
-  
-  // Cálculos Financeiros (serão atualizados por nossa lógica de backend)
-  calculatedCost  Float?       // Custo total dos insumos da receita
-  
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  
-  // Relacionamentos
-  ingredients     RecipeIngredient[]
+  id               String             @id @default(cuid())
+  name             String             @unique
+  description      String?
+  tags             String[]
+  status           RecipeStatus       @default(DRAFT)
+  method           String
+  preparationTime  Int?
+  cookingTime      Int?
+  restingTime      Int?
+  yield            Float
+  yieldUnit        String
+  calculatedCost   Float?
+  markup           Float?             @default(3) // NOVO: Fator de markup para o preço
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  ingredients      RecipeIngredient[]
   productionOrders ProductionOrder[]
 }
 
@@ -85,10 +68,8 @@ model Recipe {
 model RecipeIngredient {
   recipeId     String
   ingredientId String
-  quantity     Float   // Quantidade do insumo usada na receita (na mesma unidade do estoque)
-  notes        String? // Notas específicas para o ingrediente nesta receita (ex: "peneirada", "em temperatura ambiente")
-  
-  // Relacionamentos
+  quantity     Float
+  notes        String?
   recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)
 
@@ -101,22 +82,20 @@ model RecipeIngredient {
 
 // Ordens de Produção: Registra tudo que foi produzido.
 model ProductionOrder {
-  id              String   @id @default(cuid())
-  recipeId        String
-  quantityProduced Float   // Quantidade produzida (ex: 5 pães)
-  productionDate  DateTime @default(now())
-  notes           String?
-  
-  // Relacionamentos
-  recipe          Recipe   @relation(fields: [recipeId], references: [id])
+  id               String   @id @default(cuid())
+  recipeId         String
+  quantityProduced Float
+  productionDate   DateTime @default(now())
+  notes            String?
+  recipe           Recipe   @relation(fields: [recipeId], references: [id])
 }
 
 // Custos Operacionais: Além dos ingredientes.
 model OperationalCost {
-  id        String   @id @default(cuid())
-  name      String   @unique // "Aluguel", "Gás", "Energia", "Salário Confeiteiro"
-  costType  CostType // Fixo mensal ou por hora de produção
-  value     Float    // Valor do custo (seja mensal ou por hora)
+  id       String   @id @default(cuid())
+  name     String   @unique
+  costType CostType
+  value    Float
 }
 
 //================================================//
@@ -125,14 +104,15 @@ model OperationalCost {
 
 // Status para o workflow de criação de receitas
 enum RecipeStatus {
-  DRAFT     // Rascunho, ainda em desenvolvimento
-  TESTING   // Em fase de testes na cozinha
-  FINAL     // Receita finalizada e aprovada para produção
-  ARCHIVED  // Arquivada, não está mais em uso
+  DRAFT
+  TESTING
+  FINAL
+  ARCHIVED
 }
 
 // Tipos de custos operacionais
 enum CostType {
-  FIXED_MONTHLY // Custo fixo mensal (ex: aluguel)
-  PER_HOUR      // Custo por hora de trabalho (ex: gás, mão de obra)
+  FIXED_MONTHLY
+  PER_HOUR
 }
+
