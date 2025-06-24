@@ -1,8 +1,8 @@
 // src/lib/supabaseClient.ts
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-// Cria e exporta o cliente Supabase para ser usado em toda a aplicação.
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Nota: Agora usamos createBrowserClient
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
