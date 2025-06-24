@@ -2,35 +2,15 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function AuthPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-
-  // Efeito que "ouve" as mudanças no estado de autenticação
-  useEffect(() => {
-    // onAuthStateChange retorna um objeto { data: { subscription } }
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') {
-        router.push('/');
-        router.refresh();
-      }
-    });
-
-    // Função de limpeza: remove o "ouvinte" quando o componente é desmontado
-    return () => {
-      // A função unsubscribe está dentro do objeto de subscrição
-      subscription?.unsubscribe();
-    };
-  }, [router]);
-
 
   const handleAuth = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,8 +24,14 @@ export default function AuthPage() {
           email,
           password,
         });
-        if (error) throw error;
-        // O redirecionamento é tratado pelo useEffect
+
+        if (error) {
+          throw error;
+        }
+        
+        // SUCESSO! Força um recarregamento completo do navegador na página principal.
+        // Este é o método mais fiável para garantir que a nova sessão seja reconhecida.
+        window.location.href = '/';
 
       } else {
         // Lógica de Registo
@@ -54,12 +40,16 @@ export default function AuthPage() {
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
         setMessage('Registo bem-sucedido! Pode agora fazer login.');
-        setIsLogin(true);
+        setIsLogin(true); // Muda para a tela de login após o registo
       }
 
     } catch (error: any) {
+      // Limpa a palavra-passe em caso de erro para que o utilizador possa tentar novamente.
+      setPassword('');
       setMessage(`Erro: ${error.error_description || error.message}`);
     } finally {
       setLoading(false);
@@ -91,7 +81,7 @@ export default function AuthPage() {
 
         <p className="text-sm text-center text-gray-600">
           {isLogin ? 'Ainda não tem conta?' : 'Já tem uma conta?'}
-          <button onClick={() => setIsLogin(!isLogin)} className="ml-1 font-semibold text-blue-600 hover:underline">
+          <button onClick={() => { setIsLogin(!isLogin); setMessage(''); }} className="ml-1 font-semibold text-blue-600 hover:underline">
             {isLogin ? 'Registe-se' : 'Faça login'}
           </button>
         </p>
@@ -99,3 +89,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
