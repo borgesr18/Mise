@@ -9,6 +9,7 @@ interface RouteContext {
   };
 }
 
+// CÓDIGO EXISTENTE: Função para lidar com pedidos PATCH (atualização parcial)
 export async function PATCH(req: Request, { params }: RouteContext) {
   try {
     const { id } = params;
@@ -22,7 +23,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
         method: body.method,
         yield: body.yield,
         yieldUnit: body.yieldUnit,
-        markup: body.markup, // NOVO: Adicionamos o campo markup
+        markup: body.markup,
       },
     });
 
@@ -33,7 +34,24 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   }
 }
 
-// ... (A função DELETE continua a mesma abaixo) ...
+// NOVO CÓDIGO: Função para lidar com pedidos DELETE
 export async function DELETE(req: Request, { params }: RouteContext) {
-  // ...
+  try {
+    const { id } = params;
+
+    // Devido à nossa regra `onDelete: Cascade` na tabela RecipeIngredient,
+    // apagar uma receita irá apagar automaticamente todos os vínculos de ingredientes.
+    const deletedRecipe = await prisma.recipe.delete({
+      where: {
+        id: id,
+      },
+    });
+
+    return NextResponse.json(deletedRecipe, { status: 200 });
+  } catch (error) {
+    console.error('Delete error:', error);
+    // Erro comum é tentar apagar uma receita que ainda tem Ordens de Produção ligadas a ela.
+    // O Prisma irá bloquear isso para proteger a integridade dos dados.
+    return NextResponse.json({ message: 'Erro ao apagar a ficha técnica. Verifique se não existem ordens de produção associadas.' }, { status: 500 });
+  }
 }
